@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skin Check — Smartlife Tools</title>
+<style>
+body{font-family:system-ui,sans-serif;max-width:640px;margin:2rem auto;padding:0 1rem;line-height:1.5}
+button{padding:.7rem 1.2rem;font-size:1rem;cursor:pointer}
+#result{white-space:pre-wrap;background:#f4f4f4;padding:1rem;border-radius:8px}
+small{color:#555}
+</style>
+</head>
+<body>
+<h1>Skin Check</h1>
+<p>Upload a clear, front-facing photo. You get a Skin AI score, skin type, and the top concerns to work on — then a simple next step.</p>
+<p><small>Photos are sent only to the YouCam Skin AI API for this analysis. No photo is stored by this demo page. Results are general skin information, not medical advice.</small></p>
+<label>Photo (JPEG or PNG, up to 10 MB)<br>
+<input type="file" id="photo" accept="image/jpeg,image/png"></label><br><br>
+<label>Or public image URL<br>
+<input type="url" id="url" style="width:100%" placeholder="https://example.com/face.jpg"></label><br><br>
+<button id="check">Check my skin</button>
+<p id="status"></p>
+<div id="result"></div>
+<script>
+const API = '/api/skin-analysis'; // server proxy only — never put an API key in this page
+document.getElementById('check').onclick = async () => {
+  const status = document.getElementById('status');
+  const result = document.getElementById('result');
+  status.textContent = 'Analysing… this usually takes a few seconds.';
+  result.textContent = '';
+  const file = document.getElementById('photo').files[0];
+  const url = document.getElementById('url').value.trim();
+  if (!file && !url) { status.textContent = 'Please choose a photo or paste an image URL first.'; return; }
+  const form = new FormData();
+  if (file) form.append('photo', file);
+  if (url) form.append('src_file_url', url);
+  try {
+    const r = await fetch(API, {method:'POST', body: form});
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Analysis failed');
+    const s = data.scores || data;
+    const top = (data.top_concerns || []).join(', ');
+    result.textContent = 'Overall score: ' + (s.overall ?? '—') + '\nSkin type: ' + (s.skin_type ?? '—') + '\nTop concerns: ' + (top || '—') + '\n\nNext step: ' + (data.next_step || 'Follow a simple routine for your top concern and re-check in 2 weeks.') + '\n\nFull result:\n' + JSON.stringify(data, null, 2);
+    status.textContent = 'Done.';
+  } catch (e) { status.textContent = 'Could not analyse that photo: ' + e.message + ' Please try a clear, front-facing photo.'; }
+};
+</script>
+</body>
+</html>
